@@ -1,0 +1,21 @@
+##CScript JaT_Interpretator.js fact.jat
+= $1 1 ##all multiples a
+##write@ Enter_value:
+read $0
+< $0 0 $5
+if $5
+write@ Value_Is_Less_Than_Zero!
+eof
+endif
+= $7 $0 ##Saving our value for the future 
+##:repeat
+== $0 0 $2
+== $0 1 $4 
+or $2 $4 $3
+not $3 $3
+if $3
+* $1 $0
+- $0 1
+goto :repeat
+endif
+write $1
