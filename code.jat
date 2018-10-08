@@ -2,8 +2,6 @@ read $0
 if $0
 write@ working
 elseif
-
 write@ notWorking
 endif
-
 write@ asACommon

@@ -27,7 +27,7 @@ if (eofIndex < 0)
 	//end of file
 	memory.push("eof");
 
-	var eofIndex = memory.length;
+	var eofIndex = memory.length - 1;
 }
 
 //Starting setting functions
@@ -51,7 +51,7 @@ registerFunction("|", 3);
 
 registerFunction("=", 2);
 
-registerFunction("if", 3);
+registerFunction("if", 2);
 registerFunction("end", 0);
 registerFunction("else", 1);
 registerFunction("and", 3);
@@ -63,6 +63,9 @@ registerFunction(">", 3);
 registerFunction(">=", 3);
 registerFunction("<", 3);
 registerFunction("<=", 3);
+
+registerFunction("isInteger", 2);
+registerFunction("isInfinite", 2);
 
 registerFunction("writeCounter", 0);
 
@@ -136,6 +139,8 @@ function call(id, args)
 			write(args); break;
 		case "write@":
 			writeString(args); break;
+		case "write":
+			writeString(args); break;
 		case "writeLn":
 			writeLine(args); break;
 		case "writeLn@":
@@ -159,8 +164,11 @@ function call(id, args)
 		case "else":
 			elseWrap(args); break;
 		case "end":
-			counter -= 1;
 			break;
+		case "isInteger":
+			isInteger(args); break;
+		case "isInfinite":
+			isInfinite(args); break;
 		case "=":
 			set(args); break;
 		case "and":
@@ -203,6 +211,17 @@ function setVariable(a, value)
 	{
 		memory[a] = value;
 	}
+}
+
+function isInteger(arr)
+{
+	var val = getValue(arr[0]);
+	setVariable(arr[1], (val ^ 0) === val);
+}
+function isInfinite(arr)
+{
+	var val = getValue(arr[0]);
+	setVariable(arr[1], val === Number.POSITIVE_INFINITY || val === Number.NEGATIVE_INFINITY);
 }
 
 function read(arr)
@@ -287,7 +306,7 @@ function set(arr)// a=b
 function ifWrap(arr)
 {
 	var elseif = +arr[0];
-	var b = parseBoolean(arr[2]);
+	var b = parseBoolean(arr[1]);
 	if (!b)
 	{
 		counter = elseif;
@@ -492,51 +511,53 @@ function readJatFile(filePath)
 		for (var i = 0; i < words.length; i++)
 		{
 			word = trim(words[i]);
-			if (word.indexOf("##") > -1)
+			if (word != "")
 			{
-				commenting = true;
-			}
-			if (!commenting)
-			{
-				if (word == "default")
+				if (word.indexOf("##") > -1)
 				{
-					dmemory.push("eof");
+					commenting = true;
 				}
-				dmemory.push(word);
-				if (word == "if")
+				if (!commenting)
 				{
-					dmemory.push("elseif");
-					dmemory.push("endif");
-				}
-				if (word == "else")
-				{
-					dmemory.push("endif");
-					for (var j = dmemory.length - 1; j >= 0; j--)
+					if (word == "default")
 					{
-						if (dmemory[j] == "elseif")
+						dmemory.push("eof");
+					}
+					dmemory.push(word);
+					if (word == "if")
+					{
+						dmemory.push("elseif");
+					}
+					if (word == "else")
+					{
+						dmemory.push("endif");
+						for (var j = dmemory.length - 1; j >= 0; j--)
 						{
-							dmemory[j] = dmemory.length - 4;
+							if (dmemory[j] == "elseif")
+							{
+								dmemory[j] = dmemory.length - 5;
+							}
+						}
+					}
+					if (word == "end")
+					{
+						for (var j = dmemory.length - 1; j >= 0; j--)
+						{
+							if (dmemory[j] == "elseif")
+							{
+								dmemory[j] = dmemory.length - 5;
+							}
+							if (dmemory[j] == "endif")
+							{
+								dmemory[j] = dmemory.length - 5;
+							}
 						}
 					}
 				}
-				if (word == "end")
+				if (word == "#")
 				{
-					for (var j = dmemory.length - 1; j >= 0; j--)
-					{
-						if (dmemory[j] == "elseif")
-						{
-							dmemory[j] = dmemory.length - 4;
-						}
-						if (dmemory[j] == "endif")
-						{
-							dmemory[j] = dmemory.length - 4;
-						}
-					}
+					commenting = false;
 				}
-			}
-			if (word == "#")
-			{
-				commenting = false;
 			}
 		}
 	}

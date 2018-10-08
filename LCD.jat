@@ -1,11 +1,9 @@
 read $0 ##a #
 read $1 ##b #
-
-< $0 $1 $2
-= $3 $1
-if $2 
+< $0 $1 $2 = $3 $1
+if $2
 = $3 $0
-endif
+end
 ##_$3_Contains_lower_number #
 ##_$4_Contains_LCD #
 = $4 1
@@ -17,17 +15,8 @@ not $7 $7
 if $7
 - $3 1
 goto :repeat
-elseif
+else
 = $4 $3
-endif
+end
 writeLn@ Lowest_Common_Multiple_is:
 writeLn $4
-
-
-
-
-
-
-
-
-
