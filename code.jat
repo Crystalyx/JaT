@@ -1,7 +1,7 @@
 read $0
 if $0
 write@ working
-elseif
+else
 write@ notWorking
-endif
-write@ asACommon
+end
+writeLn@ asACommon

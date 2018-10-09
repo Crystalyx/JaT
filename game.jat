@@ -1,0 +1,49 @@
+= $1 100 ## gold
+= $2 100 ## HP
+= $3 0 ## Armor
+
+:gameLoop
+writeLn$ You Have: ;
+write $1 writeLn@ Gold 
+write $2 writeLn@ HP
+write $3 writeLn@ Armor
+write$ Select an Action: ;
+read $4
+== $4 0 $5 ## attack
+== $4 1 $6 ## buy armor
+== $4 2 $7 ## heal
+if $5
+	nextInt $5
+	= $8 $2
+	+ $8 $3
+	- $8 $5
+	< $8 0 $6
+	if $6
+		+ $2 $8
+	end
+	< $2 0 $6
+	if $6
+		write$ You dead! ;
+		eof
+	end
+	+ $3 $5
+	goto gameLoop
+end ## end of attack block
+if $6
+	> $1 10 $5
+	if $5
+		- $1 10
+		+ $3 40
+	end
+goto gameLoop
+end ## end of buy armor block
+if $7
+	> $1 10 $5
+	if $5
+		- $1 10
+		+ $2 40
+	end
+end ## end of heal block
+##
+goto gameLoop 
+eof 
