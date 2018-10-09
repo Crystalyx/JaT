@@ -1,12 +1,178 @@
 var filePath = WScript.Arguments.Item(0);
 memory = [];
+
+var counter = 0;
+
+var doShift = true;
+
+//Starting setting functions
+var funcArgCount = new ActiveXObject("Scripting.Dictionary");
+registerFunction("read", 1);
+
+registerFunction("write", 1);
+registerFunction("write@", 1);
+registerFunction("write$", 200);
+registerFunction("writeLn", 1);
+registerFunction("writeLn@", 1);
+registerFunction("writeLn$", 200);
+
+registerFunction("goto", 1);
+
+registerFunction("+", 2);
+registerFunction("-", 2);
+
+registerFunction("*", 2);
+registerFunction("//", 3);
+registerFunction("%", 3);
+registerFunction("|", 3);
+
+registerFunction("=", 2);
+
+registerFunction("if", 2);
+registerFunction("end", 0);
+registerFunction("else", 1);
+registerFunction("and", 3);
+registerFunction("or", 3);
+registerFunction("==", 3);
+registerFunction("not", 2);
+
+registerFunction(">", 3);
+registerFunction(">=", 3);
+registerFunction("<", 3);
+registerFunction("<=", 3);
+
+registerFunction("isInteger", 2);
+registerFunction("isInfinite", 2);
+registerFunction("nextInt", 1);
+registerFunction("fact", 2);
+registerFunction("writeMemory", 0);
+registerFunction("flushMemory", 0);
+registerFunction("removeVariable", 1);
+
+registerFunction("writeCounter", 0);
+registerFunction("shiftVariables", 1);
+registerFunction("clrscr", 0);
+
+var consoleMode = false;
+var closedWrite = true;
+if (filePath == "console")
+{
+	consoleMode = true;
+	var varStartIndex = 30;
+
+	WScript.StdOut.write("$>");
+	var funcWord = trim(WScript.StdIn.ReadLine());
+	while (funcWord != "stopConsole")
+	{
+		if (funcWord != "")
+		{
+			var words = funcWord.split(" ");
+			var di = 0;
+			var ifInsideId = 0;
+			for (var i = 0; i < varStartIndex - 10; i++)
+			{
+				memory[i + di] = words[i];
+				if (memory[i] == "if")
+				{
+					ifInsideId += 1;
+					memory[i + 1 + di] = "exitPos_" + ifInsideId;
+					di += 1;
+					//WSH.echo("ifexitPos_" + ifInsideId);
+					continue;
+				}
+				if (memory[i] == "else")
+				{
+					memory[i + 1 + di] = "exitPos_" + ifInsideId;
+					var pos = memory.length;
+					//WSH.echo("elsexitPos_" + ifInsideId);
+
+					for (var j = pos - 2; j >= 0; j--)
+					{
+						if (memory[j] == "exitPos_" + ifInsideId)
+						{
+							memory[j] = pos;
+						}
+					}
+					continue;
+				}
+				if (memory[i] == "end")
+				{
+					var pos = memory.length;
+
+					//WSH.echo("endexitPos_" + ifInsideId);
+					for (var j = pos; j >= 0; j--)
+					{
+						if (memory[j] == "exitPos_" + ifInsideId)
+						{
+							memory[j] = pos;
+						}
+					}
+					ifInsideId -= 1;
+					continue;
+				}
+			}
+			if (typeof memory[varStartIndex - 10] != "undefined")
+			{
+				WSH.echo("[ERROR] You should expand your command space or your programm will not work properly");
+			}
+			var memlength = memory.length;
+			while (memory[counter] != "eof" && typeof memory[counter] != "undefined" && counter < memlength)
+			{
+				var func = memory[counter];
+				if (typeof func == "string" && isVariable(func))
+				{
+					WSH.echo(getValue(func));
+				}
+				else
+					if (typeof func == "string" && func.indexOf(":") == 0)
+					{
+					}
+					else
+						if (funcArgCount.Exists(func))
+						{
+							var argsCount = getArgCount(func);
+							var args = [];
+							for (var i = 1; i < argsCount + 1; i++)
+							{
+								args.push(memory[i + counter]);
+							}
+							call(func, args);
+							if (doShift)
+								counter += argsCount;
+						}
+						else
+						{
+							WSH.echo("[Error][" + counter + "]: Couldn't find function signature \"" + func + "\"");
+						}
+				if (doShift)
+					counter += 1;
+				doShift = true;
+			}
+		}
+		var dmm = [];
+		for (var i = varStartIndex; i < memory.length; i++)
+		{
+			dmm[i] = memory[i];
+		}
+		memory = dmm;
+		counter = 0;
+		if (!closedWrite)
+		{
+			WSH.echo();
+			closedWrite = true;
+		}
+		WScript.StdOut.write("$>");
+		funcWord = trim(WScript.StdIn.ReadLine());
+	}
+}
+
 var dmem = readJatFile(filePath);
 appendMemory(dmem);
-if (memory[0] == "function")
+/**if (memory[0] == "function")
 {
 	memory.shift();
 	memory.shift();
-}
+}*/
 
 var eofIndex = -1;
 
@@ -27,44 +193,8 @@ if (eofIndex < 0)
 	//end of file
 	memory.push("eof");
 
-	var eofIndex = memory.length;
+	var eofIndex = memory.length - 1;
 }
-
-//Starting setting functions
-var funcArgCount = new ActiveXObject("Scripting.Dictionary");
-registerFunction("read", 1);
-
-registerFunction("write", 1);
-registerFunction("write@", 1);
-registerFunction("writeLn", 1);
-registerFunction("writeLn@", 1);
-
-registerFunction("goto", 1);
-
-registerFunction("+", 2);
-registerFunction("-", 2);
-
-registerFunction("*", 2);
-registerFunction("//", 3);
-registerFunction("%", 3);
-registerFunction("|", 3);
-
-registerFunction("=", 2);
-
-registerFunction("if", 3);
-registerFunction("end", 0);
-registerFunction("else", 1);
-registerFunction("and", 3);
-registerFunction("or", 3);
-registerFunction("==", 3);
-registerFunction("not", 2);
-
-registerFunction(">", 3);
-registerFunction(">=", 3);
-registerFunction("<", 3);
-registerFunction("<=", 3);
-
-registerFunction("writeCounter", 0);
 
 function registerFunction(id, argNum)
 {
@@ -84,7 +214,6 @@ var varStartIndex = memory.length + 50;
 //allocated functions
 var funcStartIndex = memory.length + 1050;
 
-var counter = 0;
 //Executing our code
 while (memory[counter] != "eof" && counter < eofIndex)
 {
@@ -100,29 +229,42 @@ while (memory[counter] != "eof" && counter < eofIndex)
 			args.push(memory[i + counter]);
 		}
 		call(func, args);
-		counter += argsCount;
+		if (doShift)
+			counter += argsCount;
 	}
 	else
 	{
 		WSH.echo("[Error][" + counter + "]: Couldn't find function signature " + func + " words around are: [" + memory[counter - 1] + ", " + memory[counter + 1] + "]");
 	}
-	counter += 1;
+	if (doShift)
+		counter += 1;
+	doShift = true;
 }
 if (memory[eofIndex + 1] == "default")
 {
-	for (var i = 2; i >= 21; i++)
+	var i = 2;
+	while (memory[eofIndex + i] != "defaultend" && memory[eofIndex + i] != undefined)
 	{
-		WSH.echo("|" + memory[eofIndex + 1] + "|");
 		var func = memory[eofIndex + i];
-		var argsCount = getArgCount(func);
-		WSH.echo("[Debug][" + eofIndex + i + "]: Arg Count: " + argsCount);
-		var args = [];
-		for (var j = 1; j < argsCount + 1; j++)
+		if (funcArgCount.Exists(func) || (typeof func == "string" && func.indexOf(":") == 0))
 		{
-			args.push(memory[j + i + eofIndex]);
+			var argsCount = getArgCount(func);
+			var args = [];
+			for (var j = 1; j < argsCount + 1; j++)
+			{
+				args.push(memory[j + i + eofIndex]);
+			}
+			call(func, args);
+			if (doShift)
+				i += argsCount;
 		}
-		call(func, args);
-		i += argsCount;
+		else
+		{
+			WSH.echo("[Error][" + eofIndex + i + "]: Couldn't find function signature " + func + " words around are: [" + memory[eofIndex + i - 1] + ", " + memory[eofIndex + i + 1] + "]");
+		}
+		if (doShift)
+			i++;
+		doShift = true;
 	}
 }
 
@@ -136,12 +278,31 @@ function call(id, args)
 			write(args); break;
 		case "write@":
 			writeString(args); break;
+		case "write":
+			writeString(args); break;
 		case "writeLn":
 			writeLine(args); break;
 		case "writeLn@":
 			writeStringLine(args); break;
+		case "write$":
+			writeStringText(args); break
+		case "writeLn$":
+			writeStringTextLine(args); break
+		case "nextInt":
+			setVariable(args[0], Math.floor((Math.random() * 100) + 1)); break
 		case "goto":
 			gotoLabel(args); break;
+		case "shiftVariables":
+			varStartIndex = getValue(args[0]);
+		case "clrscr":
+			for (var i = 0; i < 100; i++)
+			{
+				WSH.echo();
+			}
+		case "writeMemory":
+			writeMemory(); break;
+		case "flushMemory":
+			flushMemory(); break;
 		case "+":
 			plus(args); break;
 		case "-":
@@ -159,8 +320,11 @@ function call(id, args)
 		case "else":
 			elseWrap(args); break;
 		case "end":
-			counter -= 1;
 			break;
+		case "isInteger":
+			isInteger(args); break;
+		case "isInfinite":
+			isInfinite(args); break;
 		case "=":
 			set(args); break;
 		case "and":
@@ -179,8 +343,25 @@ function call(id, args)
 			lessOrEquals(args); break;
 		case "not":
 			not(args); break;
+		case "fact":
+			fact(args); break;
+		case "removeVariable":
+			removeVariable(args); break;
 	}
 }
+
+function hashCode(s)
+{
+	var hash = 0, i, chr;
+	if (s.length === 0) return hash;
+	for (i = 0; i < s.length; i++)
+	{
+		chr = s.charCodeAt(i);
+		hash = ((hash << 5) - hash) + chr;
+		hash |= 0; // Convert to 32bit integer
+	}
+	return hash;
+};
 
 function varIndexFromWord(word)
 {
@@ -190,7 +371,11 @@ function varIndexFromWord(word)
 		if (word.indexOf("!") == 0)
 			val = +word.substring(1) - varStartIndex;
 	}
-	return +val + varStartIndex;
+	if (isNaN(val))
+	{
+		return hashCode(word.substring(1)) + varStartIndex;
+	}
+	return +val + (val != word ? varStartIndex : "");
 }
 
 function setVariable(a, value)
@@ -205,6 +390,56 @@ function setVariable(a, value)
 	}
 }
 
+
+function disableShift()
+{
+	doShift = false;
+}
+
+function isInteger(arr)
+{
+	var val = getValue(arr[0]);
+	setVariable(arr[1], (val ^ 0) === val);
+}
+
+function removeVariable(arr)
+{
+	var varId = varIndexFromWord(arr[0]);
+	setVariable(arr[0], undefined);
+	flushMemory();
+}
+function flushMemory(arr)
+{
+	var dmm = [];
+	for (var i = 0; i < memory.length; i++)
+	{
+		if (memory[i] != undefined && memory[i] != "")
+			dmm[i] = memory[i];
+	}
+	memory = dmm;
+}
+
+function writeMemory(arr)
+{
+	WSH.echo("|_" + memory.join("_|_") + "_|");
+}
+
+function fact(arr)
+{
+	var val = getValue(arr[0]);
+	var prod = 1;
+	for (var i = val; i > 0; i--)
+	{
+		prod *= i;
+	}
+	setVariable(arr[1], prod);
+}
+function isInfinite(arr)
+{
+	var val = getValue(arr[0]);
+	setVariable(arr[1], val === Number.POSITIVE_INFINITY || val === Number.NEGATIVE_INFINITY);
+}
+
 function read(arr)
 {
 	setVariable(arr[0], WScript.StdIn.ReadLine());
@@ -212,10 +447,12 @@ function read(arr)
 function write(arr)
 {
 	WScript.StdOut.Write(getValue(arr[0]) + " ");
+	closedWrite = false;
 }
 function writeString(arr)
 {
 	WScript.StdOut.Write(arr[0] + " ");
+	closedWrite = false;
 }
 function writeLine(arr)
 {
@@ -225,9 +462,40 @@ function writeStringLine(arr)
 {
 	WSH.echo(arr[0]);
 }
+function writeStringText(arr)
+{
+	var ret = "";
+	var size = 0;
+	for (var i = 0; i < arr.length && arr[i] != ";"; i++)
+	{
+		var word = arr[i];
+		if (word.indexOf("\\") == 0)
+			word = word.substring(1);
+		ret += word + " ";
+		size++;
+	}
+	counter = counter - 200 + size + 1;
+	WScript.StdOut.Write(trim(ret));
+	closedWrite = false;
+}
+function writeStringTextLine(arr)
+{
+	var ret = "";
+	var size = 0;
+	for (var i = 0; i < arr.length && arr[i] != ";"; i++)
+	{
+		var word = arr[i];
+		if (word.indexOf("\\") == 0)
+			word = word.substring(1);
+		ret += word + " ";
+		size++;
+	}
+	counter = counter - 200 + size + 1;
+	WSH.echo(trim(ret));
+}
 function gotoLabel(arr)
 {
-	var a = arr[0];
+	var a = ":" + arr[0];
 	var i = 0;
 	while (memory[i] != a && i < memory.length)
 	{
@@ -287,17 +555,25 @@ function set(arr)// a=b
 function ifWrap(arr)
 {
 	var elseif = +arr[0];
-	var b = parseBoolean(arr[2]);
+	var b = parseBoolean(arr[1]);
+	disableShift();
 	if (!b)
 	{
 		counter = elseif;
 	}
+	else
+	{
+		counter += 3;
+	}
+	//WSH.echo("onIf: " + memory[counter]);
 }
 
 function elseWrap(arr)
 {
-	var eif = arr[0];
+	var eif = getValue(arr[0]);
+	disableShift();
 	counter = eif;
+	//WSH.echo("onElse: " + memory[counter]);
 }
 
 function and(arr)// a*b
@@ -411,9 +687,9 @@ function readReturn(arr)
 }
 function appendMemory(dMem)
 {
-	for (var i = 0; i < dmem.length; i++)
+	for (var i = 0; i < dMem.length; i++)
 	{
-		memory.push(dmem[i]);
+		memory.push(dMem[i]);
 	}
 }
 function callFunction(arr)
@@ -470,7 +746,7 @@ function trim(s)
 	var ret = "";
 	for (var i = 0; i < s.length; i++)
 	{
-		if (i == 0 || (s.charAt(i) != "\t" && s.charAt(i) != " " || s.charAt(i - 1) != " "))
+		if (s.charAt(i) != "\t" && (s.charAt(i) != " " || s.charAt(i - 1) != " ") && s.charAt(i) != "	")
 		{
 			ret += s.charAt(i);
 		}
@@ -484,6 +760,7 @@ function readJatFile(filePath)
 	var ts = fso.OpenTextFile(filePath);//code file
 	var dmemory = [];
 
+	var ifInsideId = 0;
 	while (!ts.AtEndOfStream)
 	{
 		var commenting = false;
@@ -492,51 +769,61 @@ function readJatFile(filePath)
 		for (var i = 0; i < words.length; i++)
 		{
 			word = trim(words[i]);
-			if (word.indexOf("##") > -1)
+			if (word != "")
 			{
-				commenting = true;
-			}
-			if (!commenting)
-			{
-				if (word == "default")
+				if (word.indexOf("##") > -1)
 				{
-					dmemory.push("eof");
+					commenting = true;
 				}
-				dmemory.push(word);
-				if (word == "if")
+				if (!commenting)
 				{
-					dmemory.push("elseif");
-					dmemory.push("endif");
-				}
-				if (word == "else")
-				{
-					dmemory.push("endif");
-					for (var j = dmemory.length - 1; j >= 0; j--)
+					if (word == "default")
 					{
-						if (dmemory[j] == "elseif")
+						dmemory.push("eof");
+					}
+					dmemory.push(word);
+					if (word == "if")
+					{
+						ifInsideId += 1;
+						dmemory.push("exitPos_" + ifInsideId);
+						//WSH.echo("ifexitPos_" + ifInsideId);
+						continue;
+					}
+					if (word == "else")
+					{
+						dmemory.push("exitPos_" + ifInsideId);
+						var pos = dmemory.length;
+						//WSH.echo("elsexitPos_" + ifInsideId);
+
+						for (var j = pos - 2; j >= 0; j--)
 						{
-							dmemory[j] = dmemory.length - 4;
+							if (dmemory[j] == "exitPos_" + ifInsideId)
+							{
+								dmemory[j] = pos;
+							}
 						}
+						continue;
+					}
+					if (word == "end")
+					{
+						var pos = dmemory.length;
+
+						//WSH.echo("endexitPos_" + ifInsideId);
+						for (var j = pos; j >= 0; j--)
+						{
+							if (dmemory[j] == "exitPos_" + ifInsideId)
+							{
+								dmemory[j] = pos;
+							}
+						}
+						ifInsideId -= 1;
+						continue;
 					}
 				}
-				if (word == "end")
+				if (word == "#")
 				{
-					for (var j = dmemory.length - 1; j >= 0; j--)
-					{
-						if (dmemory[j] == "elseif")
-						{
-							dmemory[j] = dmemory.length - 4;
-						}
-						if (dmemory[j] == "endif")
-						{
-							dmemory[j] = dmemory.length - 4;
-						}
-					}
+					commenting = false;
 				}
-			}
-			if (word == "#")
-			{
-				commenting = false;
 			}
 		}
 	}

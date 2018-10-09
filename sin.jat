@@ -1,10 +1,10 @@
 read $0 ## x #
 = $1 100
-write $1
-allocateFunction fact.jat $2
-callFunction $2 4
-readReturnedValue 0 $3
-write $3
+= $2 ad
+isInteger $1 $3
+isInteger $2 $4
+writeLn $3
+writeLn $4
 
 
 
