@@ -1,3 +1,4 @@
+writeLn$ Enter a \and b (Each in new row) ;
 read $0 ##a #
 read $1 ##b #
 < $0 $1 $2
