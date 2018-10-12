@@ -1,3 +1,5 @@
+"use strict"
+
 var filePath = WScript.Arguments.Item(0);
 memory = [];
 
@@ -11,10 +13,10 @@ registerFunction("read", 1);
 
 registerFunction("write", 1);
 registerFunction("write@", 1);
-registerFunction("write$", 200);
+registerFunction("write$", 1);
 registerFunction("writeLn", 1);
 registerFunction("writeLn@", 1);
-registerFunction("writeLn$", 200);
+registerFunction("writeLn$", 1);
 
 registerFunction("goto", 1);
 
@@ -49,18 +51,36 @@ registerFunction("writeMemory", 0);
 registerFunction("flushMemory", 0);
 registerFunction("removeVariable", 1);
 registerFunction("loadFile", 1);
-registerFunction("toFile", 201);
+registerFunction("toFile", 2);
 registerFunction("deleteFile", 1);
 registerFunction("createFile", 1);
-registerFunction("appendFile", 201);
+registerFunction("appendFile", 2);
 
 registerFunction("writeCounter", 0);
 registerFunction("shiftVariables", 1);
 registerFunction("clrscr", 0);
 
+registerFunction("push", 2);
+registerFunction("pop", 2);
+registerFunction("clearStack", 0);
+registerFunction("length", 2);
+registerFunction("get", 3);
+registerFunction("set", 3);
+registerFunction("copy", 2);
+
+function toConString(obj)
+{
+	if (typeof obj == "object")//it's an Array
+	{
+		return "[" + obj.toString() + "]"
+	}
+	return obj + "";
+}
+
 var consoleMode = false;
 var closedWrite = true;
 var systemStopped = false;
+
 if (filePath == "console")
 {
 	consoleMode = true;
@@ -89,9 +109,8 @@ if (filePath == "console")
 				if (memory[i] == "else")
 				{
 					memory[i + 1 + di] = "exitPos_" + ifInsideId;
-					di+=1;
+					di += 1;
 					var pos = memory.length;
-					//WSH.echo("elsexitPos_" + ifInsideId);
 
 					for (var j = pos - 2; j >= 0; j--)
 					{
@@ -106,7 +125,6 @@ if (filePath == "console")
 				{
 					var pos = memory.length;
 
-					//WSH.echo("endexitPos_" + ifInsideId);
 					for (var j = pos; j >= 0; j--)
 					{
 						if (memory[j] == "exitPos_" + ifInsideId)
@@ -128,7 +146,10 @@ if (filePath == "console")
 				var func = memory[counter];
 				if (typeof func == "string" && isVariable(func))
 				{
-					WSH.echo(getValue(func));
+					if (typeof getValue(func) != "undefined")
+						WSH.echo(toConString(getValue(func)));
+					else
+						WSH.echo("undefined");
 				}
 				else
 					if (typeof func == "string" && func.indexOf(":") == 0)
@@ -139,10 +160,41 @@ if (filePath == "console")
 						{
 							var argsCount = getArgCount(func);
 							var args = [];
-							for (var i = 1; i < argsCount + 1; i++)
+							var di = 1;
+							var j = 0;
+							WSH.Echo("J: " + j + "; args: " + argsCount);
+							while (j < argsCount)
 							{
-								args.push(memory[i + counter]);
+								var memWord = memory[j + di + counter];
+								if (memWord != null && memWord != undefined)
+									if (memWord == "<")
+									{
+										var argstr = "";
+										while (memory[j + di + counter] != ">")
+										{
+											di += 1;
+											argstr += memory[j + di + counter];
+										}
+
+										args.push(argstr);
+									}
+									else
+										if (memWord == "[")
+										{
+											var argarr = [];
+											while (memory[j + di + counter] != "]")
+											{
+												di += 1;
+												argarr.push(memory[j + di + counter]);
+											}
+
+											args.push(argarr);
+										}
+										else
+											args.push(memory[j + di + counter]);
+								j++; WSH.echo("j++");
 							}
+							WSH.echo("Func: " + func + "; Args: " + args);
 							call(func, args);
 							if (doShift)
 								counter += argsCount;
@@ -235,9 +287,48 @@ if (!systemStopped)
 			var argsCount = getArgCount(func);
 			//WSH.echo("[Debug][" + counter + "]: Arg Count: " + argsCount);
 			var args = [];
-			for (var i = 1; i < argsCount + 1; i++)
+			var argsCount = getArgCount(func);
+			var args = [];
+			var di = 1;
+			var j = 0;
+			while (j < argsCount)
 			{
-				args.push(memory[i + counter]);
+				var memWord = memory[j + counter + di];
+				if (memWord != null && memWord != undefined)
+					if (memWord.indexOf("<") == 0)
+					{
+						var argstr = "" + memWord.substring(1);
+						if (argstr.indexOf(">") != memWord.length - 1)
+						{
+							while (memory[j + counter + di].indexOf(">") != memory[j + counter + di].length - 1)
+							{
+								di += 1;
+								argstr += " " + memory[j + counter + di];
+							}
+							di += 1;
+							argstr += " " + memory[j + counter + di].substring(0, memory[j + counter + di].length - 1);
+						}
+
+						args.push(argstr);
+					}
+					else
+						if (memWord == "[")
+						{
+							var argarr = [];
+							if (argarr == "]")
+							{
+								while (memory[j + counter + di] != "]")
+								{
+									di += 1;
+									argarr.push(memory[j + counter + di]);
+								}
+							}
+
+							args.push(argarr);
+						}
+						else
+							args.push(memory[j + counter + di]);
+				j++;
 			}
 			call(func, args);
 			if (doShift)
@@ -261,10 +352,48 @@ if (!systemStopped)
 			{
 				var argsCount = getArgCount(func);
 				var args = [];
-				for (var j = 1; j < argsCount + 1; j++)
+				var di = 1;
+				var j = 0;
+				while (j < argsCount)
 				{
-					args.push(memory[j + i + eofIndex]);
+					var memWord = memory[j + i + di + eofIndex];
+					if (memWord != null && memWord != undefined)
+						if (memWord.indexOf("<") == 0)
+						{
+							var argstr = "" + memWord.substring(1);
+							if (argstr.indexOf(">") != memWord.length - 1)
+							{
+								while (memory[j + i + di + eofIndex].indexOf(">") != memory[j + i + di + eofIndex].length - 1)
+								{
+									di += 1;
+									argstr += " " + memory[j + i + di + eofIndex];
+								}
+								di += 1;
+								argstr += " " + memory[j + i + di + eofIndex].substring(0, memory[j + i + di + eofIndex].length - 1);
+							}
+
+							args.push(argstr);
+						}
+						else
+							if (memWord == "[")
+							{
+								var argarr = [];
+								if (argarr == "]")
+								{
+									while (memory[j + i + di + eofIndex] != "]")
+									{
+										di += 1;
+										argarr.push(memory[j + i + di + eofIndex]);
+									}
+								}
+
+								args.push(argarr);
+							}
+							else
+								args.push(memory[j + i + di + eofIndex]);
+					j++;
 				}
+
 				call(func, args);
 				if (doShift)
 					i += argsCount;
@@ -378,7 +507,27 @@ if (!systemStopped)
 				fact(args); break;
 			case "removeVariable":
 				removeVariable(args); break;
+			case "push":
+				pushToArray(args); break;
+			case "pop":
+				popFromArray(args); break;
+			case "clearStack":
+				clearStack(args); break;
+			case "length":
+				ObjLength(args); break;
+			case "get":
+				getAt(args); break;
+			case "set":
+				setAt(args); break;
+			case "copy":
+				copy(args); break;
 		}
+	}
+
+	function clearStack(arr)
+	{
+		memory = [];
+		flushMemory();
 	}
 
 	function hashCode(s)
@@ -396,28 +545,81 @@ if (!systemStopped)
 
 	function varIndexFromWord(word)
 	{
-		var val = +(word.indexOf("$") == 0 || word.indexOf("#") == 0 ? +word.substring(1) : +word);
-		if (val == word)
+		if (word.indexOf(":") == -1)
 		{
-			if (word.indexOf("!") == 0)
-				val = +word.substring(1) - varStartIndex;
+			var val = +(word.indexOf("$") == 0 || word.indexOf("#") == 0 ? +word.substring(1) : +word);
+			if (val == word)
+			{
+				if (word.indexOf("!") == 0)
+					val = +word.substring(1) - varStartIndex;
+			}
+			if (isNaN(val))
+			{
+				return hashCode(word.substring(1)) + varStartIndex;
+			}
+			return +val + (val != word ? varStartIndex : "");
 		}
-		if (isNaN(val))
-		{
-			return hashCode(word.substring(1)) + varStartIndex;
-		}
-		return +val + (val != word ? varStartIndex : "");
+		else
+			return varIndexFromWord(word.substring(0, word.indexOf(":")));
 	}
 
 	function setVariable(a, value)
 	{
 		if (isVariable(a))
 		{
-			memory[varIndexFromWord(a)] = value;
+			if (getArrayIndex(a) != -1)
+			{
+				memory[varIndexFromWord(a)][getArrayIndex(a)] = value;
+			}
+			else
+				memory[varIndexFromWord(a)] = value;
 		}
 		else
 		{
 			memory[a] = value;
+		}
+	}
+
+	function ObjLength(arr)
+	{
+		try
+		{
+			setVariable(arr[1], getValue(arr[0]).length);
+		} catch (e)
+		{
+			WSH.echo("You tried to get length from nonlinear object");
+		}
+	}
+
+	function getAt(arr)
+	{
+		setVariable(arr[2], getValue(arr[0])[+getValue(arr[1])]);
+	}
+
+	function setAt(arr)
+	{
+		setVariable(arr[0] + ":" + arr[1], getValue(arr[2]));
+	}
+
+	function pushToArray(arr)
+	{
+		try
+		{
+			getValue(arr[0]).push(getValue(arr[1]));
+		} catch (e)
+		{
+			WSH.echo("You tried to push value to non-array object");
+		}
+	}
+
+	function popFromArray(arr)
+	{
+		try
+		{
+			setVariable(arr[1], getValue(arr[0]).pop());
+		} catch (e)
+		{
+			WSH.echo("You tried to pop value from non-array object");
 		}
 	}
 
@@ -445,13 +647,15 @@ if (!systemStopped)
 	function deleteFile(arr)
 	{
 		var fso = new ActiveXObject("Scripting.FileSystemObject");
-		fso.DeleteFile(arr[0]);
+		fso.DeleteFile(arr[0], true);
+		if (fso.FileExists(arr[0]))
+			fso.DeleteFile((arr[0]));
 	}
 
 	function createFile(arr)
 	{
 		var fso = new ActiveXObject("Scripting.FileSystemObject");
-		fso.CreateTextFile(arr[0]);
+		fso.CreateTextFile(arr[0], true);
 	}
 
 	function appendFile(arr)
@@ -532,7 +736,10 @@ if (!systemStopped)
 	}
 	function write(arr)
 	{
-		WScript.StdOut.Write(getValue(arr[0]) + " ");
+		if (typeof getValue(arr[0]) != "undefined")
+			WScript.StdOut.Write(getValue(arr[0]));
+		else
+			WScript.StdOut.Write("undefined");
 		closedWrite = false;
 	}
 	function writeString(arr)
@@ -542,7 +749,10 @@ if (!systemStopped)
 	}
 	function writeLine(arr)
 	{
-		WSH.echo(getValue(arr[0]));
+		if (typeof getValue(arr[0]) != "undefined")
+			WSH.echo(getValue(arr[0]));
+		else
+			WScript.StdOut.Write("undefined");
 	}
 	function writeStringLine(arr)
 	{
@@ -609,7 +819,16 @@ if (!systemStopped)
 	}
 	function plus(arr)//a+=b
 	{
-		setVariable(arr[0], +getValue(arr[0]) + getValue(arr[1]));
+		var val = 0;
+		if (+isNaN(+getValue(arr[0])))
+		{
+			val = getValue(arr[0]) + getValue(arr[1]);
+		}
+		else
+		{
+			val = +getValue(arr[0]) + +getValue(arr[1]);
+		}
+		setVariable(arr[0], val);
 	}
 	function sub(arr)//a+=b
 	{
@@ -635,7 +854,7 @@ if (!systemStopped)
 	}
 	function set(arr)// a=b
 	{
-		setVariable(arr[0], (+getValue(arr[1])));
+		setVariable(arr[0], (getValue(arr[1])));
 	}
 
 	function ifWrap(arr)
@@ -818,13 +1037,39 @@ if (!systemStopped)
 	{
 		return typeof a == "string" && (a.charAt(0) == "!" || a.charAt(0) == "@" || a.charAt(0) == "#" || a.charAt(0) == "$");
 	}
+
+	function getArrayIndex(varstr)
+	{
+		if (varstr.indexOf(":") > 0)
+		{
+			return +varstr.substring(varstr.indexOf(":") + 1);
+		}
+		return -1;
+	}
+
 	function getValue(a)
 	{
 		if (isVariable(a))
 		{
-			return +memory[varIndexFromWord(a)];
+			if (typeof memory[varIndexFromWord(a)] == "number")
+				return +memory[varIndexFromWord(a)];
+			else
+				if (getArrayIndex(a) != -1)
+				{
+					return memory[varIndexFromWord(a)][getArrayIndex(a)];
+				}
+				else
+					return memory[varIndexFromWord(a)];
 		}
-		return +a;
+		else
+		{
+			if (typeof a == "string")
+				if (a.indexOf("\\") == 0 && isVariable(a.substring(1)))
+				{
+					return a.substring(1);
+				}
+		}
+		return a;
 	}
 
 	function trim(s)
