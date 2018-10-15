@@ -129,7 +129,7 @@ if (filePath == "console")
 				var func = memory[counter];
 				if (typeof func == "string" && isVariable(func))
 				{
-					WSH.echo(getValue(func));
+					WSH.echo(toNString(getValue(func)));
 				}
 				else
 					if (typeof func == "string" && func.indexOf(":") == 0)
@@ -285,7 +285,7 @@ if (!systemStopped)
 					{
 						if (memory[i + counter + d].indexOf("]") == -1)
 						{
-							arrArgs.push(memory[i + counter + d].substring(1));
+							arrArgs.push(getValue(memory[i + counter + d].substring(1)));
 						}
 						else
 						{
@@ -299,11 +299,11 @@ if (!systemStopped)
 					{
 						if (memory[i + counter + d].indexOf("]") != -1)
 						{
-							arrArgs.push(memory[i + counter + d].substring(0, memory[i + counter + d].length - 1));
+							arrArgs.push(getValue(memory[i + counter + d].substring(0, memory[i + counter + d].length - 1)));
 							d--;
 							break;
 						}
-						arrArgs.push(memory[i + counter + d]);
+						arrArgs.push(getValue(memory[i + counter + d]));
 						d++;
 						arrCounter++;
 					}
@@ -464,6 +464,29 @@ if (!systemStopped)
 		}
 	}
 
+	function toNString(obj)
+	{
+		if (typeof obj == "object")
+		{
+			var ret = "[";
+			for (var i = 0; i < obj.length; i++)
+				ret += toNString(obj[i]) + (i == obj.length - 1 ? "" : ",");
+			return ret + "]";
+		}
+		if (typeof obj == "string")
+		{
+			if (obj != "")
+				return "\"" + obj + "\"";
+			else
+				return "undefined";
+		}
+		if (typeof obj == "undefined" || typeof obj == "null")
+		{
+			return typeof obj;
+		}
+		return "" + obj;
+	}
+
 	function hashCode(s)
 	{
 		var hash = 0, i, chr;
@@ -477,8 +500,24 @@ if (!systemStopped)
 		return hash;
 	};
 
+	function getArrayIndex(word)
+	{
+		if (isVariable(word))
+		{
+			if (word.indexOf(":") != -1)
+			{
+				return +word.substring(word.indexOf(":") + 1);
+			}
+		}
+		return -1;
+	}
+
 	function varIndexFromWord(word)
 	{
+		if (word.indexOf(":") != -1)
+		{
+			word = word.substring(0, word.indexOf(":"));
+		}
 		var val = +(word.indexOf("$") == 0 || word.indexOf("#") == 0 ? +word.substring(1) : +word);
 		if (val == word)
 		{
@@ -496,7 +535,12 @@ if (!systemStopped)
 	{
 		if (isVariable(a))
 		{
-			memory[varIndexFromWord(a)] = value;
+			if (getArrayIndex(a) != -1)
+			{
+				memory[varIndexFromWord(a)][getArrayIndex(a)] = value;
+			}
+			else
+				memory[varIndexFromWord(a)] = value;
 		}
 		else
 		{
@@ -617,7 +661,7 @@ if (!systemStopped)
 	}
 	function write(arr)
 	{
-		WScript.StdOut.Write(getValue(arr[0]) + " ");
+		WScript.StdOut.Write(toNString(getValue(arr[0])));
 		closedWrite = false;
 	}
 	function writeString(arr)
@@ -627,7 +671,7 @@ if (!systemStopped)
 	}
 	function writeLine(arr)
 	{
-		WSH.echo(getValue(arr[0]));
+		WSH.echo(toNString(getValue(arr[0])));
 	}
 	function writeStringLine(arr)
 	{
@@ -692,6 +736,8 @@ if (!systemStopped)
 		else
 			counter = i - 1;
 	}
+
+
 	function plus(arr)//a+=b
 	{
 		if (typeof getValue(arr[0]) == "number" || !isNaN(+getValue(arr[0])))
@@ -968,6 +1014,13 @@ if (!systemStopped)
 			var v = memory[varIndexFromWord(a)];
 			if (typeof v == "number")
 				return +v;
+			if (getArrayIndex(a) != -1)
+			{
+				var e = v[getArrayIndex(a)];
+				if (typeof e == "number")
+					return +e;
+				return e;
+			}
 			return v;
 		}
 		if (typeof a == "number")
