@@ -745,9 +745,12 @@ if (!systemStopped)
 			}
 		}
 	}
-	function sub(arr)//a+=b
+	function sub(arr)//a+=b only for numbers
 	{
-		setVariable(arr[0], +getValue(arr[0]) - getValue(arr[1]));
+		if (typeof getValue(arr[0]) == "number")
+		{
+			setVariable(arr[0], +getValue(arr[0]) - getValue(arr[1]));
+		}
 	}
 	function mult(arr)//a*=b
 	{
