@@ -12,10 +12,8 @@ registerFunction("read", 1);
 
 registerFunction("write", 1);
 registerFunction("write@", 1);
-registerFunction("write$", 200);
 registerFunction("writeLn", 1);
 registerFunction("writeLn@", 1);
-registerFunction("writeLn$", 200);
 
 registerFunction("goto", 1);
 
@@ -378,10 +376,6 @@ if (!systemStopped)
 				writeLine(args); break;
 			case "writeLn@":
 				writeStringLine(args); break;
-			case "write$":
-				writeStringText(args); break
-			case "writeLn$":
-				writeStringTextLine(args); break
 			case "nextInt":
 				setVariable(args[0], Math.floor((Math.random() * 100) + 1)); break
 			case "goto":
@@ -676,37 +670,6 @@ if (!systemStopped)
 	function writeStringLine(arr)
 	{
 		WSH.echo(arr[0]);
-	}
-	function writeStringText(arr)
-	{
-		var ret = "";
-		var size = 0;
-		for (var i = 0; i < arr.length && arr[i] != ";"; i++)
-		{
-			var word = arr[i];
-			if (word.indexOf("\\") == 0)
-				word = word.substring(1);
-			ret += word + " ";
-			size++;
-		}
-		counter = counter - 200 + size + 1;
-		WScript.StdOut.Write(trim(ret));
-		closedWrite = false;
-	}
-	function writeStringTextLine(arr)
-	{
-		var ret = "";
-		var size = 0;
-		for (var i = 0; i < arr.length && arr[i] != ";"; i++)
-		{
-			var word = arr[i];
-			if (word.indexOf("\\") == 0)
-				word = word.substring(1);
-			ret += word + " ";
-			size++;
-		}
-		counter = counter - 200 + size + 1;
-		WSH.echo(trim(ret));
 	}
 	function gotoLabel(arr)
 	{
