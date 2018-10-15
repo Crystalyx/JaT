@@ -275,84 +275,88 @@ if (!systemStopped)
 		var d = 0;
 		for (var i = 1; i < argsCount + 1; i++)
 		{
-			if (memory[i + counter + d] == "[" || (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1))
+			if (typeof memory[i + counter + d] == "string")
 			{
-				var arrCounter = 0;
-				var arrArgs = [];
-				if (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1)
+				if (memory[i + counter + d] == "[" || (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1))
 				{
-					if (memory[i + counter + d].indexOf("]") == -1)
+					var arrCounter = 0;
+					var arrArgs = [];
+					if (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1)
 					{
-						arrArgs.push(memory[i + counter + d].substring(1));
-					}
-					else
-					{
-						arrArgs.push(memory[i + counter + d].substring(1, memory[i + counter + d].length - 1));
-						args.push(arrArgs);
-						break;
-					}
-				}
-				d++;
-				while (memory[i + counter + d] != "]" && arrCounter < maxArrInputSize)
-				{
-					if (memory[i + counter + d].indexOf("]") != -1)
-					{
-						arrArgs.push(memory[i + counter + d].substring(0, memory[i + counter + d].length - 1));
-						d--;
-						break;
-					}
-					arrArgs.push(memory[i + counter + d]);
-					d++;
-					arrCounter++;
-				}
-				d++;
-				if (arrCounter >= maxArrInputSize)
-				{
-					WSH.echo("[ERROR] ArraySizeOutOfBoundException(" + (counter + d) + ") : ArraySize " + arrCounter + " > " + maxArrInputSize);
-				}
-				args.push(arrArgs);
-			}
-			else
-				if (memory[i + counter + d] == "<" || (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1))
-				{
-					var strCounter = 0;
-					var strArgs = "";
-					if (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1)
-					{
-						if (memory[i + counter + d].indexOf(">") == -1)
+						if (memory[i + counter + d].indexOf("]") == -1)
 						{
-							strArgs += memory[i + counter + d].substring(1) + " ";
+							arrArgs.push(memory[i + counter + d].substring(1));
 						}
 						else
 						{
-							strArgs += memory[i + counter + d].substring(1, memory[i + counter + d].length - 1);
-							args.push(trim(strArgs));
-							break;
+							arrArgs.push(memory[i + counter + d].substring(1, memory[i + counter + d].length - 1));
+							args.push(arrArgs);
+							continue;
 						}
 					}
 					d++;
-					while (memory[i + counter + d] != ">" && strCounter < maxArrInputSize)
+					while (memory[i + counter + d] != "]" && arrCounter < maxArrInputSize)
 					{
-						if (memory[i + counter + d].indexOf(">") != -1)
+						if (memory[i + counter + d].indexOf("]") != -1)
 						{
-							strArgs += memory[i + counter + d].substring(0, memory[i + counter + d].length - 1);
+							arrArgs.push(memory[i + counter + d].substring(0, memory[i + counter + d].length - 1));
 							d--;
 							break;
 						}
-						strArgs += memory[i + counter + d] + (memory[i + counter + d + 1] != ">" ? " " : "");
-
+						arrArgs.push(memory[i + counter + d]);
 						d++;
-						strCounter++;
+						arrCounter++;
 					}
 					d++;
-					if (strCounter >= maxArrInputSize)
+					if (arrCounter >= maxArrInputSize)
 					{
-						WSH.echo("[ERROR] StringSizeOutOfBoundException(" + (counter + d) + ") : StringSize " + strCounter + " > " + maxArrInputSize);
+						WSH.echo("[ERROR] ArraySizeOutOfBoundException(" + (counter + d) + ") : ArraySize " + arrCounter + " > " + maxArrInputSize);
 					}
-					args.push(trim(strArgs));
+					args.push(arrArgs);
+					continue;
 				}
 				else
-					args.push(memory[i + counter + d]);
+					if (memory[i + counter + d] == "<" || (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1))
+					{
+						var strCounter = 0;
+						var strArgs = "";
+						if (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1)
+						{
+							if (memory[i + counter + d].indexOf(">") == -1)
+							{
+								strArgs += memory[i + counter + d].substring(1) + " ";
+							}
+							else
+							{
+								strArgs += memory[i + counter + d].substring(1, memory[i + counter + d].length - 1);
+								args.push(trim(strArgs));
+								continue;
+							}
+						}
+						d++;
+						while (memory[i + counter + d] != ">" && strCounter < maxArrInputSize)
+						{
+							if (memory[i + counter + d].indexOf(">") != -1)
+							{
+								strArgs += memory[i + counter + d].substring(0, memory[i + counter + d].length - 1);
+								d--;
+								break;
+							}
+							strArgs += memory[i + counter + d] + (memory[i + counter + d + 1] != ">" ? " " : "");
+
+							d++;
+							strCounter++;
+						}
+						d++;
+						if (strCounter >= maxArrInputSize)
+						{
+							WSH.echo("[ERROR] StringSizeOutOfBoundException(" + (counter + d) + ") : StringSize " + strCounter + " > " + maxArrInputSize);
+						}
+						args.push(trim(strArgs));
+						continue;
+					}
+			}
+			args.push(memory[i + counter + d]);
 		}
 
 		return d;
@@ -564,6 +568,8 @@ if (!systemStopped)
 	function isInteger(arr)
 	{
 		var val = getValue(arr[0]);
+		if (!isNaN(+val))
+			val = +val;
 		setVariable(arr[1], (val ^ 0) === val);
 	}
 
@@ -688,7 +694,7 @@ if (!systemStopped)
 	}
 	function plus(arr)//a+=b
 	{
-		if (typeof getValue(arr[0]) == "number")
+		if (typeof getValue(arr[0]) == "number" || !isNaN(+getValue(arr[0])))
 		{
 			setVariable(arr[0], +getValue(arr[0]) + getValue(arr[1]));
 		}
@@ -747,7 +753,7 @@ if (!systemStopped)
 	}
 	function sub(arr)//a+=b only for numbers
 	{
-		if (typeof getValue(arr[0]) == "number")
+		if (typeof getValue(arr[0]) == "number" || !isNaN(+getValue(arr[0])))
 		{
 			setVariable(arr[0], +getValue(arr[0]) - getValue(arr[1]));
 		}
@@ -772,7 +778,6 @@ if (!systemStopped)
 	}
 	function set(arr)// a=b
 	{
-		WSH.echo("|" + getValue(arr[1]) + "|");
 		setVariable(arr[0], (getValue(arr[1])));
 	}
 

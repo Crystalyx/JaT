@@ -1,10 +1,10 @@
 = $0 1 ## all multiples of n #
-write$ \write an Integer number: ;
+write@ <write an Integer number:>
 read $1
 isInteger $1 $2
 not $2 $2
 if $2
-writeLn$ [ERROR]What You Entered Is Not An Integer Number! ;
+writeLn@ <[ERROR]What You Entered Is Not An Integer Number!> 
 eof
 end
 = $3 0
@@ -17,6 +17,6 @@ if $5
 + $3 1
 goto repeat
 end
-write $4 write$ ! = ;
+write $4 write@ <! =>
 writeLn $0
 eof 
