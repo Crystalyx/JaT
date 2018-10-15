@@ -9,10 +9,10 @@ interpretator has two modes of work:
 •file interpretation - you give file name as an argument #1 and interpretator runs it.
 •console mode - you give "console" as an argument #1 and you get "console". e.g. you should write functions and arguments for functions and it will be processed in real-time.
 
-language has nearly 39 functions (number in brackets is an argument count):
-•read[1]
-•write[1]
-•writeLn[1]
+language has nearly 39 functions (number in brackets is an argument count):\n
+•read[1]\n
+•write[1]\n
+•writeLn[1]\n
 •write@[1]
 •writeLn@[1]
 •goto[1]
