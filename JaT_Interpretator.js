@@ -5,6 +5,7 @@ var counter = 0;
 
 var doShift = true;
 
+var maxArrInputSize = 256;
 //Starting setting functions
 var funcArgCount = new ActiveXObject("Scripting.Dictionary");
 registerFunction("read", 1);
@@ -89,7 +90,7 @@ if (filePath == "console")
 				if (memory[i] == "else")
 				{
 					memory[i + 1 + di] = "exitPos_" + ifInsideId;
-					di+=1;
+					di += 1;
 					var pos = memory.length;
 					//WSH.echo("elsexitPos_" + ifInsideId);
 
@@ -139,13 +140,10 @@ if (filePath == "console")
 						{
 							var argsCount = getArgCount(func);
 							var args = [];
-							for (var i = 1; i < argsCount + 1; i++)
-							{
-								args.push(memory[i + counter]);
-							}
+							var dcounter = collectArguments(args, argsCount, counter);
 							call(func, args);
 							if (doShift)
-								counter += argsCount;
+								counter += argsCount + dcounter;
 						}
 						else
 						{
@@ -233,15 +231,11 @@ if (!systemStopped)
 		if (funcArgCount.Exists(func) || (typeof func == "string" && func.indexOf(":") == 0))
 		{
 			var argsCount = getArgCount(func);
-			//WSH.echo("[Debug][" + counter + "]: Arg Count: " + argsCount);
 			var args = [];
-			for (var i = 1; i < argsCount + 1; i++)
-			{
-				args.push(memory[i + counter]);
-			}
+			var dcounter = collectArguments(args, argsCount, counter);
 			call(func, args);
 			if (doShift)
-				counter += argsCount;
+				counter += argsCount + dcounter;
 		}
 		else
 		{
@@ -261,13 +255,10 @@ if (!systemStopped)
 			{
 				var argsCount = getArgCount(func);
 				var args = [];
-				for (var j = 1; j < argsCount + 1; j++)
-				{
-					args.push(memory[j + i + eofIndex]);
-				}
+				var dcounter = collectArguments(args, argsCount, counter);
 				call(func, args);
 				if (doShift)
-					i += argsCount;
+					counter += argsCount + dcounter;
 			}
 			else
 			{
@@ -277,6 +268,94 @@ if (!systemStopped)
 				i++;
 			doShift = true;
 		}
+	}
+
+	function collectArguments(args, argsCount, counter)
+	{
+		var d = 0;
+		for (var i = 1; i < argsCount + 1; i++)
+		{
+			if (memory[i + counter + d] == "[" || (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1))
+			{
+				var arrCounter = 0;
+				var arrArgs = [];
+				if (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1)
+				{
+					if (memory[i + counter + d].indexOf("]") == -1)
+					{
+						arrArgs.push(memory[i + counter + d].substring(1));
+					}
+					else
+					{
+						arrArgs.push(memory[i + counter + d].substring(1, memory[i + counter + d].length - 1));
+						args.push(arrArgs);
+						break;
+					}
+				}
+				d++;
+				while (memory[i + counter + d] != "]" && arrCounter < maxArrInputSize)
+				{
+					if (memory[i + counter + d].indexOf("]") != -1)
+					{
+						arrArgs.push(memory[i + counter + d].substring(0, memory[i + counter + d].length - 1));
+						d--;
+						break;
+					}
+					arrArgs.push(memory[i + counter + d]);
+					d++;
+					arrCounter++;
+				}
+				d++;
+				if (arrCounter >= maxArrInputSize)
+				{
+					WSH.echo("[ERROR] ArraySizeOutOfBoundException(" + (counter + d) + ") : ArraySize " + arrCounter + " > " + maxArrInputSize);
+				}
+				args.push(arrArgs);
+			}
+			else
+				if (memory[i + counter + d] == "<" || (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1))
+				{
+					var strCounter = 0;
+					var strArgs = "";
+					if (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1)
+					{
+						if (memory[i + counter + d].indexOf(">") == -1)
+						{
+							strArgs += memory[i + counter + d].substring(1) + " ";
+						}
+						else
+						{
+							strArgs += memory[i + counter + d].substring(1, memory[i + counter + d].length - 1);
+							args.push(trim(strArgs));
+							break;
+						}
+					}
+					d++;
+					while (memory[i + counter + d] != ">" && strCounter < maxArrInputSize)
+					{
+						if (memory[i + counter + d].indexOf(">") != -1)
+						{
+							strArgs += memory[i + counter + d].substring(0, memory[i + counter + d].length - 1);
+							d--;
+							break;
+						}
+						strArgs += memory[i + counter + d] + (memory[i + counter + d + 1] != ">" ? " " : "");
+
+						d++;
+						strCounter++;
+					}
+					d++;
+					if (strCounter >= maxArrInputSize)
+					{
+						WSH.echo("[ERROR] StringSizeOutOfBoundException(" + (counter + d) + ") : StringSize " + strCounter + " > " + maxArrInputSize);
+					}
+					args.push(trim(strArgs));
+				}
+				else
+					args.push(memory[i + counter + d]);
+		}
+
+		return d;
 	}
 
 	function call(id, args)
@@ -609,7 +688,62 @@ if (!systemStopped)
 	}
 	function plus(arr)//a+=b
 	{
-		setVariable(arr[0], +getValue(arr[0]) + getValue(arr[1]));
+		if (typeof getValue(arr[0]) == "number")
+		{
+			setVariable(arr[0], +getValue(arr[0]) + getValue(arr[1]));
+		}
+		else
+		{
+			if (typeof getValue(arr[0]) == "object")//an Array
+			{
+				try
+				{
+					var arrBase = getValue(arr[0]);
+					var arrFrom = getValue(arr[1]);
+					if (typeof arrFrom == "object")
+					{
+						for (var i = 0; i < arrFrom.length; i++)
+						{
+							arrBase.push(arrFrom[i]);
+						}
+					}
+					else
+					{
+						arrBase.push(arrFrom);
+					}
+				}
+				catch (e)
+				{
+					WSH.echo("[ERROR] You tried to unite array with incompatible object");
+				}
+			}
+
+			if (typeof getValue(arr[0]) == "string")
+			{
+				try
+				{
+					var strBase = getValue(arr[0]);
+					var strFrom = getValue(arr[1]);
+					if (typeof strFrom == "object")
+					{
+						var strret = strBase;
+						for (var i = 0; i < strFrom.length; i++)
+						{
+							strret += arrFrom[i];
+						}
+						setVariable(arr[0], strret);
+					}
+					else
+					{
+						setVariable(arr[0], strBase + strFrom);
+					}
+				}
+				catch (e)
+				{
+					WSH.echo("[ERROR] You tried to unite array with incompatible object");
+				}
+			}
+		}
 	}
 	function sub(arr)//a+=b
 	{
@@ -627,15 +761,16 @@ if (!systemStopped)
 	}
 	function divisibleOn(arr)
 	{
-		setVariable(arr[2], (+getValue(arr[0]) % +getValue(arr[1]) == 0));
+		setVariable(arr[2], (getValue(arr[0]) % getValue(arr[1]) == 0));
 	}
 	function mod(arr)
 	{
-		setVariable(arr[2], (+getValue(arr[0]) % +getValue(arr[1])));
+		setVariable(arr[2], (getValue(arr[0]) % getValue(arr[1])));
 	}
 	function set(arr)// a=b
 	{
-		setVariable(arr[0], (+getValue(arr[1])));
+		WSH.echo("|" + getValue(arr[1]) + "|");
+		setVariable(arr[0], (getValue(arr[1])));
 	}
 
 	function ifWrap(arr)
@@ -822,9 +957,14 @@ if (!systemStopped)
 	{
 		if (isVariable(a))
 		{
-			return +memory[varIndexFromWord(a)];
+			var v = memory[varIndexFromWord(a)];
+			if (typeof v == "number")
+				return +v;
+			return v;
 		}
-		return +a;
+		if (typeof a == "number")
+			return +a;
+		return a;
 	}
 
 	function trim(s)
