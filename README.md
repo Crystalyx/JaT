@@ -1,7 +1,7 @@
 # JaT
-This is my language for Scripts subject
-Language bases on three things:
 <p>
+This is my language for Scripts subject<br/>
+Language bases on three things:<br/>
 •almost all information stored in "memory"<br/>
 •functions and arguments should be written one after another separated by spaces<br/>
 •when you call variable, you use it's ordinal number in memory (after last commits you can use words, but it takes mush more memory than numeric identifiers.<br/>
