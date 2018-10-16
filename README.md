@@ -1,16 +1,17 @@
 # JaT
 This is my language for Scripts subject
 Language bases on three things:
-•almost all information stored in "memory
-•functions and arguments should be written one after another separated by spaces
-•when you call variable, you use it's ordinal number in memory (after last commits you can use words, but it takes mush more memory than numeric identifiers.
-
-interpretator has two modes of work:
-•file interpretation - you give file name as an argument #1 and interpretator runs it.
-•console mode - you give "console" as an argument #1 and you get "console". e.g. you should write functions and arguments for functions and it will be processed in real-time.
-
-language has nearly 39 functions (number in brackets is an argument count, semicolons used to divide functions from each other and unused in language):
 <p>
+•almost all information stored in "memory<br/>
+•functions and arguments should be written one after another separated by spaces<br/>
+•when you call variable, you use it's ordinal number in memory (after last commits you can use words, but it takes mush more memory than numeric identifiers.<br/>
+<br/>
+interpretator has two modes of work:<br/>
+•file interpretation - you give file name as an argument #1 and interpretator runs it.<br/>
+•console mode - you give "console" as an argument #1 and you get "console". e.g. you should write functions and arguments for functions and it will be processed in real-time.<br/>
+<br/>
+language has nearly 39 functions (number in brackets is an argument count):<br/>
+<br/>
 •read[1] - reads value provided from the keyboard and saves it into argument as variable;<br/>
 •write[1] - tries to get variable value, otherwise just write provided text to the console without "\n";<br/>
 •writeLn[1] - tries to get variable value, otherwise just write provided text to the console with "\n";<br/>
