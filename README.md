@@ -2,7 +2,7 @@
 This is my language for Scripts subject
 Language bases on three things:
 <p>
-•almost all information stored in "memory<br/>
+•almost all information stored in "memory"<br/>
 •functions and arguments should be written one after another separated by spaces<br/>
 •when you call variable, you use it's ordinal number in memory (after last commits you can use words, but it takes mush more memory than numeric identifiers.<br/>
 <br/>
@@ -16,7 +16,7 @@ language has nearly 39 functions (number in brackets is an argument count):<br/>
 •write[1] - tries to get variable value, otherwise just write provided text to the console without "\n";<br/>
 •writeLn[1] - tries to get variable value, otherwise just write provided text to the console with "\n";<br/>
 •write@[1] - just write provided text to the console without "\n";<br/>
-•writeLn@[1] - - just write provided text to the console without \n;<br/>
+•writeLn@[1] - - just write provided text to the console with "\n";<br/>
 •goto[1] - sets counter position to a providided value;<br/>
 •+[2]; - tries to add #1 and #2 and saves to #1<br/>
 •-[2]; - tries to sub #1 and #2 and saves to #1<br/>
