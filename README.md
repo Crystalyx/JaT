@@ -10,7 +10,7 @@ interpretator has two modes of work:
 •console mode - you give "console" as an argument #1 and you get "console". e.g. you should write functions and arguments for functions and it will be processed in real-time.
 
 language has nearly 39 functions (number in brackets is an argument count, semicolons used to divide functions from each other and unused in language):
-•read[1];
+<n>•read[1];<n/>
 •write[1];
 •writeLn[1];
 •write@[1];
