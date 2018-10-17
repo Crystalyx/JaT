@@ -69,62 +69,22 @@ if (filePath == "console")
 	var varStartIndex = 210;
 
 	WScript.StdOut.write("$>");
-	var funcWord = trim(WScript.StdIn.ReadLine());
+	var funcWord = trimString(WScript.StdIn.ReadLine());
 	while (funcWord != "stopConsole")
 	{
 		if (funcWord != "")
 		{
-			var words = funcWord.split(" ");
-			var di = 0;
-			var ifInsideId = 0;
-			for (var i = 0; i < varStartIndex - 10; i++)
-			{
-				memory[i + di] = words[i];
-				if (memory[i] == "if")
-				{
-					ifInsideId += 1;
-					memory[i + 1 + di] = "exitPos_" + ifInsideId;
-					di += 1;
-					//WSH.echo("ifexitPos_" + ifInsideId);
-					continue;
-				}
-				if (memory[i] == "else")
-				{
-					memory[i + 1 + di] = "exitPos_" + ifInsideId;
-					di += 1;
-					var pos = memory.length;
-					//WSH.echo("elsexitPos_" + ifInsideId);
-
-					for (var j = pos - 2; j >= 0; j--)
-					{
-						if (memory[j] == "exitPos_" + ifInsideId)
-						{
-							memory[j] = pos;
-						}
-					}
-					continue;
-				}
-				if (memory[i] == "end")
-				{
-					var pos = memory.length;
-
-					//WSH.echo("endexitPos_" + ifInsideId);
-					for (var j = pos; j >= 0; j--)
-					{
-						if (memory[j] == "exitPos_" + ifInsideId)
-						{
-							memory[j] = pos;
-						}
-					}
-					ifInsideId -= 1;
-					continue;
-				}
-			}
+			var comMem = compile(funcWord);
+			//WSH.echo(comMem);
 			if (typeof memory[varStartIndex - 10] != "undefined")
 			{
 				WSH.echo("[ERROR] You should expand your command space or your programm will not work properly");
 			}
-			var memlength = memory.length;
+			var memlength = comMem.length;
+			for (var i = 0; i < memlength; i++)
+			{
+				memory[i] = comMem[i];
+			}
 			while (memory[counter] != "eof" && typeof memory[counter] != "undefined" && counter < memlength && !systemStopped)
 			{
 				var func = memory[counter];
@@ -168,7 +128,7 @@ if (filePath == "console")
 			closedWrite = true;
 		}
 		WScript.StdOut.write("$>");
-		funcWord = trim(WScript.StdIn.ReadLine());
+		funcWord = trimString(WScript.StdIn.ReadLine());
 	}
 	systemStopped = true;
 	WSH.echo("End of Console. Goodbye");
@@ -276,14 +236,13 @@ if (!systemStopped)
 		var d = 0;
 		if (typeof memory[counter + d] == "string")
 		{
-			WSH.echo(memory[counter + d]);
 			if (memory[counter + d].indexOf("b") == -1)
 			{
 				if (memory[counter + d].indexOf("n") == -1)
 				{
-					if (memory[counter + d] != "[" && (memory[counter + d].indexOf("[") != 0 || memory[counter + d].length <= 1))
+					if (memory[counter + d] != "[")
 					{
-						if (memory[counter + d] != "<" && (memory[counter + d].indexOf("<") == -1 || memory[counter + d].length <= 1))
+						if (memory[counter + d] != "<")
 						{
 							return [memory[counter + d], d];
 						}
@@ -302,36 +261,19 @@ if (!systemStopped)
 					return [+memory[counter + d].substring(1), d]
 				}
 				else
-					if (memory[counter + d] == "[" || (memory[counter + d].indexOf("[") == 0 && memory[counter + d].length > 1))
+					if (memory[counter + d] == "[")
 					{
 						var arrCounter = 0;
 						var arrArgs = [];
-						if (memory[counter + d].indexOf("[") == 0 && memory[counter + d].length > 1)
-						{
-							if (memory[counter + d].indexOf("]") == -1)
-							{
-								arrArgs.push(getValue(memory[counter + d].substring(1)));
-							}
-							else
-							{
-								arrArgs.push(memory[counter + d].substring(1, memory[counter + d].length - 1));
-								return [arrArgs, d];
-							}
-						}
 						d++;
+						//WSH.echo(memory[counter + d]);
 						while (memory[counter + d] != "]" && arrCounter < maxArrInputSize)
 						{
-							if (memory[counter + d].indexOf("]") != -1)
-							{
-								arrArgs.push(getValue(memory[counter + d].substring(0, memory[counter + d].length - 1)));
-								d--;
-								break;
-							}
-							arrArgs.push(getValue(memory[counter + d]));
-							d++;
+							var darg = parseArgument(counter + d);
+							arrArgs.push(getValue(darg[0]));
+							d += darg[1] + 1;
 							arrCounter++;
 						}
-						d++;
 						if (arrCounter >= maxArrInputSize)
 						{
 							WSH.echo("[ERROR] ArraySizeOutOfBoundException(" + (counter + d) + ") : ArraySize " + arrCounter + " > " + maxArrInputSize);
@@ -339,42 +281,24 @@ if (!systemStopped)
 						return [arrArgs, d];
 					}
 					else
-						if (memory[counter + d] == "<" || (memory[counter + d].indexOf("<") == 0 && memory[counter + d].length > 1))
+						if (memory[counter + d] == "<")
 						{
 							var strCounter = 0;
 							var strArgs = "";
-							if (memory[counter + d].indexOf("<") == 0 && memory[counter + d].length > 1)
-							{
-								if (memory[counter + d].indexOf(">") == -1)
-								{
-									strArgs += getValue(memory[counter + d].substring(1)) + " ";
-								}
-								else
-								{
-									strArgs += getValue(memory[counter + d].substring(1, memory[counter + d].length - 1));
-									return [trim(strArgs), d];
-								}
-							}
 							d++;
 							while (memory[counter + d] != ">" && strCounter < maxArrInputSize)
 							{
-								if (memory[counter + d].indexOf(">") != -1)
-								{
-									strArgs += getValue(memory[counter + d].substring(0, memory[counter + d].length - 1));
-									d--;
-									break;
-								}
-								strArgs += getValue(memory[counter + d]) + (memory[counter + d + 1] != ">" ? " " : "");
-
-								d++;
+								var darg = parseArgument(counter + d);
+								strArgs += trimString(getValue(darg[0])) + " ";
+								d += darg[1] + 1;
 								strCounter++;
 							}
-							d++;
 							if (strCounter >= maxArrInputSize)
 							{
 								WSH.echo("[ERROR] StringSizeOutOfBoundException(" + (counter + d) + ") : StringSize " + strCounter + " > " + maxArrInputSize);
 							}
-							return [trim(strArgs), d];
+
+							return [trimString(strArgs), d];
 						}
 						else
 							return [memory[counter + d], d];
@@ -392,7 +316,7 @@ if (!systemStopped)
 			{
 				var argd = parseArgument(i + counter + d);
 				d += argd[1];
-				args.push(argd[0]);
+				args.push(trimString(argd[0]));
 				continue;
 			}
 			args.push(memory[i + counter + d]);
@@ -535,7 +459,7 @@ if (!systemStopped)
 		if (typeof obj == "string")
 		{
 			if (obj != "")
-				return "\"" + obj + "\"";
+				return "\"" + trimString(obj) + "\"";
 			else
 				return "undefined";
 		}
@@ -1067,17 +991,9 @@ if (!systemStopped)
 		return a;
 	}
 
-	function trim(s)
+	function trimString(s)
 	{
-		var ret = "";
-		for (var i = 0; i < s.length; i++)
-		{
-			if (s.charAt(i) != "\t" && (s.charAt(i) != " " || s.charAt(i - 1) != " ") && s.charAt(i) != "	")
-			{
-				ret += s.charAt(i);
-			}
-		}
-		return ret;
+		return s.replace(/^\s+|\s+$/g, "");
 	}
 
 	function readJatFile(filePath)
@@ -1094,7 +1010,8 @@ if (!systemStopped)
 			var words = line.split(" ");
 			for (var i = 0; i < words.length; i++)
 			{
-				word = trim(words[i]);
+				word = trimString(words[i]);
+				WSH.echo("|" + word + "|");
 				if (word != "")
 				{
 					if (word.indexOf("##") > -1)
@@ -1155,5 +1072,129 @@ if (!systemStopped)
 		}
 		ts.Close();
 		return dmemory;
+	}
+
+	function compile(line)
+	{
+		var dmem = [];
+		var words = line.split(" ");
+		var di = 0;
+		var ifInsideId = 0;
+		for (var i = 0; i < varStartIndex - 10 && i < words.length; i++)
+		{
+			if (words[i] != "")
+			{
+				dmem[i + di] = words[i];
+				//WSH.echo("|" + dmem[i + di] + "|");
+				if (dmem[i + di] == "[]")
+				{
+					dmem[i + di] = "[";
+					di++;
+					dmem[i + di] = "]";
+				}
+				else
+					if (dmem[i + di] == "<>")
+					{
+						dmem[i + di] = "<";
+						di++;
+						dmem[i + di] = ">";
+					}
+					else
+						if ((dmem[i + di].indexOf("<") != -1 || dmem[i + di].indexOf(">") != -1 || dmem[i + di].indexOf("[") != -1 || dmem[i + di].indexOf("]") != -1) && dmem[i + di].indexOf("\\") != 0 && dmem[i + di].length > 1)
+						{
+							var str = dmem[i + di];
+							var dj = 0;
+							for (var j = 0; j < dmem[i + di].length; j++)
+							{
+								//WSH.echo("\\" + dmem[i + di].charAt(j + dj) + "\\");
+								if ("<>[]".indexOf(dmem[i + di].charAt(j + dj)) != -1)
+								{
+									if (str.charAt(j - 1 + dj) != " " && j - 1 + dj >= 0)
+									{
+										str = insertToString(str, j + dj, " ");
+										dj++;
+									}
+									if (str.charAt(j + 1 + dj) != " " && j + 1 + dj < str.length)
+									{
+										str = insertToString(str, j + 1 + dj, " ");
+									}
+								}
+							}
+							str = str.split(" ");
+							//WSH.echo("str: |" + str + "|");
+							for (var k = 0; k < str.length; k++)
+							{
+								if (str[k] != "" && typeof str[k] != "undefined")
+								{
+									dmem[i + di] = str[k];
+									di++;
+								}
+							}
+						}
+				if (dmem[i + di] == "if")
+				{
+					ifInsideId += 1;
+					dmem[i + 1 + di] = "exitPos_" + ifInsideId;
+					di += 1;
+					//WSH.echo("ifexitPos_" + ifInsideId);
+					continue;
+				}
+				if (dmem[i + di] == "else")
+				{
+					dmem[i + 1 + di] = "exitPos_" + ifInsideId;
+					di += 1;
+					var pos = dmem.length;
+					//WSH.echo("elsexitPos_" + ifInsideId);
+
+					for (var j = pos - 2; j >= 0; j--)
+					{
+						if (dmem[j] == "exitPos_" + ifInsideId)
+						{
+							dmem[j] = pos;
+						}
+					}
+					continue;
+				}
+				if (dmem[i + di] == "end")
+				{
+					var pos = dmem.length;
+
+					//WSH.echo("endexitPos_" + ifInsideId);
+					for (var j = pos; j >= 0; j--)
+					{
+						if (dmem[j] == "exitPos_" + ifInsideId)
+						{
+							dmem[j] = pos;
+						}
+					}
+					ifInsideId -= 1;
+					continue;
+				}
+			}
+			else
+			{
+				di--;
+			}
+		}
+		di = 0;
+		var ddmem = [];
+		for (var i = 0; i < varStartIndex - 10 && i < dmem.length; i++)
+		{
+			if (dmem[i] != "" && typeof dmem[i] != "undefined")
+			{
+				ddmem.push(dmem[i]);
+			}
+		}
+		dmem = [];
+		for (var i = 0; i < varStartIndex - 10 && i < ddmem.length; i++)
+		{
+			dmem[i] = trimString(ddmem[i]);
+		}
+
+		return dmem;
+	}
+	function insertToString(string, start, what)
+	{
+		return string.substring(0, start) + what + string.substring(start);
 	}
 }
