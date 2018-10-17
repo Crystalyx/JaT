@@ -56,6 +56,9 @@ registerFunction("appendFile", 201);
 registerFunction("writeCounter", 0);
 registerFunction("shiftVariables", 1);
 registerFunction("clrscr", 0);
+registerFunction("abs", 1);
+registerFunction("max", 1);
+registerFunction("min", 1);
 
 var consoleMode = false;
 var closedWrite = true;
@@ -268,6 +271,118 @@ if (!systemStopped)
 		}
 	}
 
+	function parseArgument(counter)
+	{
+		var d = 0;
+		if (typeof memory[counter + d] == "string")
+		{
+			WSH.echo(memory[counter + d]);
+			if (memory[counter + d].indexOf("b") == -1)
+			{
+				if (memory[counter + d].indexOf("n") == -1)
+				{
+					if (memory[counter + d] != "[" && (memory[counter + d].indexOf("[") != 0 || memory[counter + d].length <= 1))
+					{
+						if (memory[counter + d] != "<" && (memory[counter + d].indexOf("<") == -1 || memory[counter + d].length <= 1))
+						{
+							return [memory[counter + d], d];
+						}
+					}
+				}
+			}
+
+			if (memory[counter + d].indexOf("b") == 0)
+			{
+				return [parseBoolean(memory[counter + d].substring(1)), d];
+			}
+			else
+
+				if (memory[counter + d].indexOf("n") == 0)
+				{
+					return [+memory[counter + d].substring(1), d]
+				}
+				else
+					if (memory[counter + d] == "[" || (memory[counter + d].indexOf("[") == 0 && memory[counter + d].length > 1))
+					{
+						var arrCounter = 0;
+						var arrArgs = [];
+						if (memory[counter + d].indexOf("[") == 0 && memory[counter + d].length > 1)
+						{
+							if (memory[counter + d].indexOf("]") == -1)
+							{
+								arrArgs.push(getValue(memory[counter + d].substring(1)));
+							}
+							else
+							{
+								arrArgs.push(memory[counter + d].substring(1, memory[counter + d].length - 1));
+								return [arrArgs, d];
+							}
+						}
+						d++;
+						while (memory[counter + d] != "]" && arrCounter < maxArrInputSize)
+						{
+							if (memory[counter + d].indexOf("]") != -1)
+							{
+								arrArgs.push(getValue(memory[counter + d].substring(0, memory[counter + d].length - 1)));
+								d--;
+								break;
+							}
+							arrArgs.push(getValue(memory[counter + d]));
+							d++;
+							arrCounter++;
+						}
+						d++;
+						if (arrCounter >= maxArrInputSize)
+						{
+							WSH.echo("[ERROR] ArraySizeOutOfBoundException(" + (counter + d) + ") : ArraySize " + arrCounter + " > " + maxArrInputSize);
+						}
+						return [arrArgs, d];
+					}
+					else
+						if (memory[counter + d] == "<" || (memory[counter + d].indexOf("<") == 0 && memory[counter + d].length > 1))
+						{
+							var strCounter = 0;
+							var strArgs = "";
+							if (memory[counter + d].indexOf("<") == 0 && memory[counter + d].length > 1)
+							{
+								if (memory[counter + d].indexOf(">") == -1)
+								{
+									strArgs += getValue(memory[counter + d].substring(1)) + " ";
+								}
+								else
+								{
+									strArgs += getValue(memory[counter + d].substring(1, memory[counter + d].length - 1));
+									return [trim(strArgs), d];
+								}
+							}
+							d++;
+							while (memory[counter + d] != ">" && strCounter < maxArrInputSize)
+							{
+								if (memory[counter + d].indexOf(">") != -1)
+								{
+									strArgs += getValue(memory[counter + d].substring(0, memory[counter + d].length - 1));
+									d--;
+									break;
+								}
+								strArgs += getValue(memory[counter + d]) + (memory[counter + d + 1] != ">" ? " " : "");
+
+								d++;
+								strCounter++;
+							}
+							d++;
+							if (strCounter >= maxArrInputSize)
+							{
+								WSH.echo("[ERROR] StringSizeOutOfBoundException(" + (counter + d) + ") : StringSize " + strCounter + " > " + maxArrInputSize);
+							}
+							return [trim(strArgs), d];
+						}
+						else
+							return [memory[counter + d], d];
+		}
+		else
+			return [memory[counter + d], d];
+	}
+
 	function collectArguments(args, argsCount, counter)
 	{
 		var d = 0;
@@ -275,84 +390,10 @@ if (!systemStopped)
 		{
 			if (typeof memory[i + counter + d] == "string")
 			{
-				if (memory[i + counter + d] == "[" || (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1))
-				{
-					var arrCounter = 0;
-					var arrArgs = [];
-					if (memory[i + counter + d].indexOf("[") == 0 && memory[i + counter + d].length > 1)
-					{
-						if (memory[i + counter + d].indexOf("]") == -1)
-						{
-							arrArgs.push(getValue(memory[i + counter + d].substring(1)));
-						}
-						else
-						{
-							arrArgs.push(memory[i + counter + d].substring(1, memory[i + counter + d].length - 1));
-							args.push(arrArgs);
-							continue;
-						}
-					}
-					d++;
-					while (memory[i + counter + d] != "]" && arrCounter < maxArrInputSize)
-					{
-						if (memory[i + counter + d].indexOf("]") != -1)
-						{
-							arrArgs.push(getValue(memory[i + counter + d].substring(0, memory[i + counter + d].length - 1)));
-							d--;
-							break;
-						}
-						arrArgs.push(getValue(memory[i + counter + d]));
-						d++;
-						arrCounter++;
-					}
-					d++;
-					if (arrCounter >= maxArrInputSize)
-					{
-						WSH.echo("[ERROR] ArraySizeOutOfBoundException(" + (counter + d) + ") : ArraySize " + arrCounter + " > " + maxArrInputSize);
-					}
-					args.push(arrArgs);
-					continue;
-				}
-				else
-					if (memory[i + counter + d] == "<" || (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1))
-					{
-						var strCounter = 0;
-						var strArgs = "";
-						if (memory[i + counter + d].indexOf("<") == 0 && memory[i + counter + d].length > 1)
-						{
-							if (memory[i + counter + d].indexOf(">") == -1)
-							{
-								strArgs += memory[i + counter + d].substring(1) + " ";
-							}
-							else
-							{
-								strArgs += memory[i + counter + d].substring(1, memory[i + counter + d].length - 1);
-								args.push(trim(strArgs));
-								continue;
-							}
-						}
-						d++;
-						while (memory[i + counter + d] != ">" && strCounter < maxArrInputSize)
-						{
-							if (memory[i + counter + d].indexOf(">") != -1)
-							{
-								strArgs += memory[i + counter + d].substring(0, memory[i + counter + d].length - 1);
-								d--;
-								break;
-							}
-							strArgs += memory[i + counter + d] + (memory[i + counter + d + 1] != ">" ? " " : "");
-
-							d++;
-							strCounter++;
-						}
-						d++;
-						if (strCounter >= maxArrInputSize)
-						{
-							WSH.echo("[ERROR] StringSizeOutOfBoundException(" + (counter + d) + ") : StringSize " + strCounter + " > " + maxArrInputSize);
-						}
-						args.push(trim(strArgs));
-						continue;
-					}
+				var argd = parseArgument(i + counter + d);
+				d += argd[1];
+				args.push(argd[0]);
+				continue;
 			}
 			args.push(memory[i + counter + d]);
 		}
@@ -455,6 +496,30 @@ if (!systemStopped)
 				fact(args); break;
 			case "removeVariable":
 				removeVariable(args); break;
+			case "abs":
+				abs(args); break;
+			case "max":
+				var ar = getValue(args[0]);
+				var max = ar[0];
+				for (var i = 1; i < ar.length; i++)
+				{
+					if (max < ar[i])
+					{
+						max = ar[i];
+					}
+				}
+				break;
+			case "min":
+				var ar = getValue(args[0]);
+				var min = ar[0];
+				for (var i = 1; i < ar.length; i++)
+				{
+					if (min > ar[i])
+					{
+						max = ar[i];
+					}
+				}
+				break;
 		}
 	}
 
@@ -613,7 +678,6 @@ if (!systemStopped)
 
 	function removeVariable(arr)
 	{
-		var varId = varIndexFromWord(arr[0]);
 		setVariable(arr[0], undefined);
 		flushMemory();
 	}
@@ -826,30 +890,35 @@ if (!systemStopped)
 
 	function equals(arr)
 	{
-		setVariable(arr[2], 0 + (parseBoolean(arr[0]) == parseBoolean(arr[1])));
+		setVariable(arr[2], (getValue(arr[0]) == getValue(arr[1])));
 	}
 
 	function greater(arr)
 	{
-		setVariable(arr[2], 0 + (+getValue(arr[0]) > +getValue(arr[1])));
+		setVariable(arr[2], (+getValue(arr[0]) > +getValue(arr[1])));
 	}
 	function greaterOrEquals(arr)
 	{
-		setVariable(arr[2], 0 + (+getValue(arr[0]) >= +getValue(arr[1])));
+		setVariable(arr[2], (+getValue(arr[0]) >= +getValue(arr[1])));
 	}
 
 	function less(arr)
 	{
-		setVariable(arr[2], 0 + (+getValue(arr[0]) < +getValue(arr[1])));
+		setVariable(arr[2], (+getValue(arr[0]) < +getValue(arr[1])));
 	}
 	function lessOrEquals(arr)
 	{
-		setVariable(arr[2], 0 + (+getValue(arr[0]) <= +getValue(arr[1])));
+		setVariable(arr[2], (+getValue(arr[0]) <= +getValue(arr[1])));
+	}
+
+	function abs(arr)
+	{
+		setVariable(arr[0], Math.abs(getValue(arr[0])));
 	}
 
 	function not(arr)
 	{
-		setVariable(arr[1], 0 + !(parseBoolean(arr[0])));
+		setVariable(arr[1], +!(parseBoolean(arr[0])));
 	}
 	var maxReturnedValues = 10;
 	function allocateFunction(arr)
@@ -985,6 +1054,13 @@ if (!systemStopped)
 				return e;
 			}
 			return v;
+		}
+		if (typeof a == "string")
+		{
+			if (a.indexOf("\\") == 0)
+			{
+				return a.substring(1);
+			}
 		}
 		if (typeof a == "number")
 			return +a;
