@@ -62,6 +62,7 @@ registerFunction("min", 1);
 registerFunction("readN", 1);
 registerFunction("set", 3);
 registerFunction("get", 3);
+registerFunction("help", 0);
 
 var consoleMode = false;
 var closedWrite = true;
@@ -453,6 +454,12 @@ if (!systemStopped)
 				getArr(args); break;
 			case "set":
 				setArr(args); break;
+			case "help":
+				memory[0] = "loadFile";
+				memory[1] = "help.jat";
+				disableShift();
+				counter = 0;
+				break;
 		}
 	}
 
