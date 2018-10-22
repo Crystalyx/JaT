@@ -59,6 +59,9 @@ registerFunction("clrscr", 0);
 registerFunction("abs", 1);
 registerFunction("max", 1);
 registerFunction("min", 1);
+registerFunction("readN", 1);
+registerFunction("set", 3);
+registerFunction("get", 3);
 
 var consoleMode = false;
 var closedWrite = true;
@@ -231,45 +234,45 @@ if (!systemStopped)
 		}
 	}
 
-	function parseArgument(counter)
+	function parseArgument(mem, counter)
 	{
 		var d = 0;
-		if (typeof memory[counter + d] == "string")
+		if (typeof mem[counter + d] == "string")
 		{
-			if (memory[counter + d].indexOf("b") == -1)
+			if (mem[counter + d].indexOf("b") == -1)
 			{
-				if (memory[counter + d].indexOf("n") == -1)
+				if (mem[counter + d].indexOf("n") == -1)
 				{
-					if (memory[counter + d] != "[")
+					if (mem[counter + d] != "[")
 					{
-						if (memory[counter + d] != "<")
+						if (mem[counter + d] != "<")
 						{
-							return [memory[counter + d], d];
+							return [mem[counter + d], d];
 						}
 					}
 				}
 			}
 
-			if (memory[counter + d].indexOf("b") == 0)
+			if (mem[counter + d].indexOf("b") == 0)
 			{
-				return [parseBoolean(memory[counter + d].substring(1)), d];
+				return [parseBoolean(mem[counter + d].substring(1)), d];
 			}
 			else
 
-				if (memory[counter + d].indexOf("n") == 0)
+				if (mem[counter + d].indexOf("n") == 0)
 				{
-					return [+memory[counter + d].substring(1), d]
+					return [+mem[counter + d].substring(1), d]
 				}
 				else
-					if (memory[counter + d] == "[")
+					if (mem[counter + d] == "[")
 					{
 						var arrCounter = 0;
 						var arrArgs = [];
 						d++;
 						//WSH.echo(memory[counter + d]);
-						while (memory[counter + d] != "]" && arrCounter < maxArrInputSize)
+						while (mem[counter + d] != "]" && arrCounter < maxArrInputSize)
 						{
-							var darg = parseArgument(counter + d);
+							var darg = parseArgument(mem, counter + d);
 							arrArgs.push(getValue(darg[0]));
 							d += darg[1] + 1;
 							arrCounter++;
@@ -281,15 +284,15 @@ if (!systemStopped)
 						return [arrArgs, d];
 					}
 					else
-						if (memory[counter + d] == "<")
+						if (mem[counter + d] == "<")
 						{
 							var strCounter = 0;
 							var strArgs = "";
 							d++;
-							while (memory[counter + d] != ">" && strCounter < maxArrInputSize)
+							while (mem[counter + d] != ">" && strCounter < maxArrInputSize)
 							{
-								var darg = parseArgument(counter + d);
-								strArgs += trimString(getValue(darg[0])) + " ";
+								var darg = parseArgument(mem, counter + d);
+								strArgs += getValue(darg[0]) + " ";
 								d += darg[1] + 1;
 								strCounter++;
 							}
@@ -301,10 +304,10 @@ if (!systemStopped)
 							return [trimString(strArgs), d];
 						}
 						else
-							return [memory[counter + d], d];
+							return [mem[counter + d], d];
 		}
 		else
-			return [memory[counter + d], d];
+			return [mem[counter + d], d];
 	}
 
 	function collectArguments(args, argsCount, counter)
@@ -314,9 +317,9 @@ if (!systemStopped)
 		{
 			if (typeof memory[i + counter + d] == "string")
 			{
-				var argd = parseArgument(i + counter + d);
+				var argd = parseArgument(memory, i + counter + d);
 				d += argd[1];
-				args.push(trimString(argd[0]));
+				args.push(argd[0]);
 				continue;
 			}
 			args.push(memory[i + counter + d]);
@@ -444,6 +447,12 @@ if (!systemStopped)
 					}
 				}
 				break;
+			case "readN":
+				readN(args); break;
+			case "get":
+				getArr(args); break;
+			case "set":
+				setArr(args); break;
 		}
 	}
 
@@ -640,6 +649,20 @@ if (!systemStopped)
 	function read(arr)
 	{
 		setVariable(arr[0], WScript.StdIn.ReadLine());
+	}
+	function readN(arr)
+	{
+		var input = WScript.StdIn.ReadLine();
+		var inputArray = input.split(" ");
+		var outArray = [];
+		var d = 0;
+		for (var i = 0; i < inputArray.length; i++)
+		{
+			var argd = parseArgument(inputArray, d + i);
+			outArray[i + d] = argd[0];
+			d += argd[1];
+		}
+		setVariable(arr[0], outArray);
 	}
 	function write(arr)
 	{
@@ -844,6 +867,17 @@ if (!systemStopped)
 	{
 		setVariable(arr[1], +!(parseBoolean(arr[0])));
 	}
+
+	function getArr(arr)
+	{
+		setVariable(arr[2], getValue(arr[1] + ":" + arr[0]));
+	}
+
+	function setArr(arr)
+	{
+		getValue(arr[1])[getValue(arr[0])] = getValue(arr[2]);
+	}
+
 	var maxReturnedValues = 10;
 	function allocateFunction(arr)
 	{
@@ -985,6 +1019,10 @@ if (!systemStopped)
 			{
 				return a.substring(1);
 			}
+			if (a == "undefined")
+			{
+				return undefined;
+			}
 		}
 		if (typeof a == "number")
 			return +a;
@@ -1010,8 +1048,7 @@ if (!systemStopped)
 			var words = line.split(" ");
 			for (var i = 0; i < words.length; i++)
 			{
-				word = trimString(words[i]);
-				WSH.echo("|" + word + "|");
+				word = words[i];
 				if (word != "")
 				{
 					if (word.indexOf("##") > -1)
@@ -1188,7 +1225,7 @@ if (!systemStopped)
 		dmem = [];
 		for (var i = 0; i < varStartIndex - 10 && i < ddmem.length; i++)
 		{
-			dmem[i] = trimString(ddmem[i]);
+			dmem[i] = ddmem[i];
 		}
 
 		return dmem;

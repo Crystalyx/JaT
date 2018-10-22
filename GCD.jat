@@ -1,4 +1,4 @@
-writeLn@ <Enter a and b (Each in new row)>
+writeLn@ < Enter a \and \b (Each in \new row) >
 read $0 ##a #
 read $1 ##b #
 < $0 $1 $2
@@ -20,5 +20,5 @@ goto repeat
 else
 = $4 $3
 end
-write@ <Greatest Common Denominator is:>
+write@ < Greatest Common Denominator is: >
 writeLn $4 
