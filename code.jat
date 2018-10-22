@@ -1,7 +1,0 @@
-read $0
-if $0
-write@ working
-else
-write@ notWorking
-end
-writeLn@ asACommon
