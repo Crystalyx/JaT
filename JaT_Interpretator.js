@@ -240,15 +240,18 @@ if (!systemStopped)
 		var d = 0;
 		if (typeof mem[counter + d] == "string")
 		{
-			if (mem[counter + d].indexOf("b") == -1)
+			if (mem[counter + d].indexOf("^") != 0)
 			{
-				if (mem[counter + d].indexOf("n") == -1)
+				if (mem[counter + d].indexOf("b") == -1)
 				{
-					if (mem[counter + d] != "[")
+					if (mem[counter + d].indexOf("n") == -1)
 					{
-						if (mem[counter + d] != "<")
+						if (mem[counter + d] != "[")
 						{
-							return [mem[counter + d], d];
+							if (mem[counter + d] != "<")
+							{
+								return [mem[counter + d], d];
+							}
 						}
 					}
 				}
@@ -293,7 +296,30 @@ if (!systemStopped)
 							while (mem[counter + d] != ">" && strCounter < maxArrInputSize)
 							{
 								var darg = parseArgument(mem, counter + d);
-								strArgs += getValue(darg[0]) + " ";
+								var val = getValue(darg[0]);
+								if (val == "^t")
+								{
+									strArgs += " ";
+								}
+								else if (val == "^tt")
+								{
+									strArgs += "   ";
+								}
+								else if (val == "^n")
+								{
+									strArgs += "\n";
+								}
+								else if (val == "^s")
+								{
+									strArgs += "";
+								}
+								else if (val == "^ss")
+								{
+									strArgs += " ";
+								}
+								else
+									strArgs += getValue(darg[0]);
+								strArgs += " ";
 								d += darg[1] + 1;
 								strCounter++;
 							}
@@ -350,12 +376,21 @@ if (!systemStopped)
 			case "goto":
 				gotoLabel(args); break;
 			case "shiftVariables":
-				varStartIndex = getValue(args[0]); break;
+				var newVarStartIndex = getValue(args[0]);
+				var dStart = newVarStartIndex - varStartIndex;
+				for (var i = varStartIndex - 10; i < memory.length; i++)
+				{
+					memory[i + dStart] = memory[i];
+				}
+				break;
 			case "clrscr":
 				for (var i = 0; i < 100; i++)
 				{
 					WSH.echo();
 				} break;
+			case "writeCounter":
+				WSH.echo(counter);
+				break;
 			case "writeMemory":
 				writeMemory(); break;
 			case "flushMemory":
@@ -363,6 +398,16 @@ if (!systemStopped)
 			case "loadFile":
 				dfmem = readJatFile(args[0]);
 				disableShift();
+				if (dfmem.length > varStartIndex - 10)
+				{
+					var newVarStartIndex = dfmem.length + 20;
+					var dStart = newVarStartIndex - varStartIndex;
+					for (var i = varStartIndex - 10; i < memory.length; i++)
+					{
+						memory[i + dStart] = memory[i];
+					}
+					varStartIndex = newVarStartIndex;
+				}
 				for (var i = 0; i < varStartIndex - 10; i++)
 				{
 					memory[i] = dfmem[i];
@@ -1058,7 +1103,7 @@ if (!systemStopped)
 				word = words[i];
 				if (word != "")
 				{
-					if (word.indexOf("##") > -1)
+					if (word.indexOf("##") > -1 && word.indexOf("\\") != 0)
 					{
 						commenting = true;
 					}
@@ -1068,6 +1113,7 @@ if (!systemStopped)
 						{
 							dmemory.push("eof");
 						}
+
 						dmemory.push(word);
 						if (word == "if")
 						{
