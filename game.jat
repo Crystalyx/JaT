@@ -5,52 +5,52 @@
 :gameLoop
 <= $2 0 $6
 if $6
-	writeLn@ <You dead!>
-	eof
+writeLn@ < You dead! >
+eof
 end
-writeLn@ <=============================================>
-writeLn@ <You Have:>
-writeLn@ <$1 Gold> 
-writeLn@ <$2 HP>
-writeLn@ <$3 Armor>
-write@ <Select an Action:>
+writeLn@ =============================================
+writeLn@ < You Have: >
+writeLn@ < $1 Gold > 
+writeLn@ < $2 HP >
+writeLn@ < $3 Armor >
+write@ < Select \an Action: >
 read $4
-== $4 <stop> $
+== $4 stop $
 if $
-	eof
+eof
 end
 == $4 0 $5 ## attack
 == $4 1 $6 ## buy armor
 == $4 2 $7 ## heal
 if $5
-	nextInt $5
-	> $5 $3 $a
-	+ $1 $5
-	writeLn@ <You got attacked by $5 HP>
-	if $a 
-		- $5 $3
-		= $3 n0
-	else
-		- $3 $5
-		= $5 n0
-	end
-	- $2 $5
-	goto gameLoop
+nextInt $5
+> $5 $3 $a
++ $1 $5
+writeLn@ < You got attacked \by $5 HP >
+if $a 
+- $5 $3
+= $3 n0
+else
+- $3 $5
+= $5 n0
+end
+- $2 $5
+goto gameLoop
 end ## end of attack block
 if $6
-	> $1 10 $5
-	if $5
-		- $1 n10
-		+ $3 n40
-	end
+> $1 10 $5
+if $5
+- $1 n10
++ $3 n40
+end
 goto gameLoop
 end ## end of buy armor block
 if $7
-	> $1 10 $5
-	if $5
-		- $1 n10
-		+ $2 n40
-	end
+> $1 10 $5
+if $5
+- $1 n10
++ $2 n40
+end
 end ## end of heal block
 ##
 goto gameLoop 
