@@ -1,9 +1,11 @@
-= $0 1 ## all multiples of n #
+= $0 n1 ## all multiples of n #
 write@ < \write an Integer \number: >
 read $1
 isInteger $1 $2
-not $2 $2
-if $2
+> $1 n0 $10
+and $2 $10 $10
+not $10 $10
+if $10
 writeLn@ < [ERROR]What You Entered Is Not An Integer Number! > 
 eof
 end
@@ -18,5 +20,5 @@ if $5
 goto repeat
 end
 write@ < $4 > write@ < \! = >
-writeLn $0
+write $0
 eof 
